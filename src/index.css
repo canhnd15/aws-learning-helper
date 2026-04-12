@@ -405,9 +405,11 @@ body {
   font-size: 14px;
 }
 
-.image-dropzone:hover {
+.image-dropzone:hover,
+.image-dropzone-active {
   border-color: var(--primary);
   color: var(--text);
+  background: rgba(59, 130, 246, 0.05);
 }
 
 .image-dropzone-icon {

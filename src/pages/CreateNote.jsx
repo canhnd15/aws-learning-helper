@@ -1,94 +1,100 @@
-import { useState, useRef } from 'react'
-import toast from 'react-hot-toast'
-import CreatableDropdown from '../components/CreatableDropdown'
-import RichTextEditor from '../components/RichTextEditor'
-import { useSections, useTopics, useTests, useNotes } from '../hooks/useSupabase'
-import { uploadImage } from '../lib/supabase'
+import { useState } from "react";
+import toast from "react-hot-toast";
+import CreatableDropdown from "../components/CreatableDropdown";
+import RichTextEditor from "../components/RichTextEditor";
+import ImageUpload from "../components/ImageUpload";
+import {
+  useSections,
+  useTopics,
+  useTests,
+  useNotes,
+} from "../hooks/useSupabase";
+import { uploadImage } from "../lib/supabase";
 
 export default function CreateNote() {
-  const { sections, loading: sectionsLoading, create: createSection } = useSections()
-  const { topics, loading: topicsLoading, create: createTopic } = useTopics()
-  const { tests, loading: testsLoading, create: createTest } = useTests()
-  const { create: createNote } = useNotes()
+  const {
+    sections,
+    loading: sectionsLoading,
+    create: createSection,
+  } = useSections();
+  const { topics, loading: topicsLoading, create: createTopic } = useTopics();
+  const { tests, loading: testsLoading, create: createTest } = useTests();
+  const { create: createNote } = useNotes();
 
-  const [testId, setTestId] = useState(null)
-  const [sectionId, setSectionId] = useState(null)
-  const [topicId, setTopicId] = useState(null)
-  const [title, setTitle] = useState('')
-  const [content, setContent] = useState('')
-  const [imageFile, setImageFile] = useState(null)
-  const [imagePreview, setImagePreview] = useState(null)
-  const [submitting, setSubmitting] = useState(false)
-  const fileInputRef = useRef(null)
+  const [testId, setTestId] = useState(null);
+  const [sectionId, setSectionId] = useState(null);
+  const [topicId, setTopicId] = useState(null);
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const handleCreateTest = async (name) => {
     try {
-      const test = await createTest(name)
-      setTestId(test.id)
-      toast.success(`Test "${name}" created`)
+      const test = await createTest(name);
+      setTestId(test.id);
+      toast.success(`Test "${name}" created`);
     } catch (err) {
-      toast.error(err.message)
+      toast.error(err.message);
     }
-  }
+  };
 
   const handleCreateSection = async (name) => {
     try {
-      const section = await createSection(name)
-      setSectionId(section.id)
-      toast.success(`Section "${name}" created`)
+      const section = await createSection(name);
+      setSectionId(section.id);
+      toast.success(`Section "${name}" created`);
     } catch (err) {
-      toast.error(err.message)
+      toast.error(err.message);
     }
-  }
+  };
 
   const handleCreateTopic = async (name) => {
     try {
-      const topic = await createTopic(name)
-      setTopicId(topic.id)
-      toast.success(`Topic "${name}" created`)
+      const topic = await createTopic(name);
+      setTopicId(topic.id);
+      toast.success(`Topic "${name}" created`);
     } catch (err) {
-      toast.error(err.message)
+      toast.error(err.message);
     }
-  }
+  };
 
-  const handleImageChange = (e) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    setImageFile(file)
-    setImagePreview(URL.createObjectURL(file))
-  }
+  const handleImageSelect = (file) => {
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+  };
 
   const removeImage = () => {
-    setImageFile(null)
-    setImagePreview(null)
-    if (fileInputRef.current) fileInputRef.current.value = ''
-  }
+    setImageFile(null);
+    setImagePreview(null);
+  };
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
+    e.preventDefault();
 
     if (!title.trim()) {
-      toast.error('Please enter a note title')
-      return
+      toast.error("Please enter a note title");
+      return;
     }
     if (!testId) {
-      toast.error('Please select or create a test')
-      return
+      toast.error("Please select or create a test");
+      return;
     }
     if (!sectionId) {
-      toast.error('Please select or create a section')
-      return
+      toast.error("Please select or create a section");
+      return;
     }
     if (!topicId) {
-      toast.error('Please select or create a topic')
-      return
+      toast.error("Please select or create a topic");
+      return;
     }
 
-    setSubmitting(true)
+    setSubmitting(true);
     try {
-      let image_url = null
+      let image_url = null;
       if (imageFile) {
-        image_url = await uploadImage(imageFile)
+        image_url = await uploadImage(imageFile);
       }
 
       await createNote({
@@ -98,28 +104,23 @@ export default function CreateNote() {
         title: title.trim(),
         content,
         image_url,
-      })
-      toast.success('Note saved!')
-      setTitle('')
-      setContent('')
-      setTestId(null)
-      setSectionId(null)
-      setTopicId(null)
-      removeImage()
+      });
+      toast.success("Note saved!");
+      setTitle("");
+      setContent("");
+      setTestId(null);
+      setSectionId(null);
+      setTopicId(null);
+      removeImage();
     } catch (err) {
-      toast.error(err.message)
+      toast.error(err.message);
     } finally {
-      setSubmitting(false)
+      setSubmitting(false);
     }
-  }
+  };
 
   return (
     <div className="page">
-      <h1>Create Note</h1>
-      <p className="page-description">
-        Record a question you got wrong or misunderstood during your practice test.
-      </p>
-
       <form onSubmit={handleSubmit} className="note-form">
         <div className="form-group">
           <label>Test Name</label>
@@ -181,41 +182,17 @@ export default function CreateNote() {
 
         <div className="form-group">
           <label>Image (optional)</label>
-          <div className="image-upload">
-            {imagePreview ? (
-              <div className="image-preview">
-                <img src={imagePreview} alt="Preview" />
-                <button
-                  type="button"
-                  className="image-remove"
-                  onClick={removeImage}
-                  title="Remove image"
-                >
-                  &times;
-                </button>
-              </div>
-            ) : (
-              <label className="image-dropzone" htmlFor="image-input">
-                <span className="image-dropzone-icon">+</span>
-                <span>Click to upload an image</span>
-                <span className="image-dropzone-hint">PNG, JPG, GIF up to 5MB</span>
-              </label>
-            )}
-            <input
-              id="image-input"
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleImageChange}
-              hidden
-            />
-          </div>
+          <ImageUpload
+            imagePreview={imagePreview}
+            onImageSelect={handleImageSelect}
+            onRemove={removeImage}
+          />
         </div>
 
         <button type="submit" className="btn btn-primary" disabled={submitting}>
-          {submitting ? 'Saving...' : 'Save Note'}
+          {submitting ? "Saving..." : "Save Note"}
         </button>
       </form>
     </div>
-  )
+  );
 }
