@@ -51,7 +51,9 @@ export default function NoteCard({ note, onDelete, onUpdate }) {
           )}
           <div className="note-card-meta">
             {note.section && <span className="badge badge-green">{note.section.name}</span>}
-            {note.topic && <span className="badge badge-orange">{note.topic.name}</span>}
+            {note.topics?.map((t) => (
+              <span key={t.id} className="badge badge-orange">{t.name}</span>
+            ))}
           </div>
         </div>
         <div className="note-card-right">

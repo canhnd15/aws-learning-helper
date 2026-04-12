@@ -5,7 +5,9 @@
       "Bash(mv aws-exam-app/* aws-exam-app/.* .)",
       "Bash(rm -rf aws-exam-app)",
       "Bash(npm install:*)",
-      "Bash(npx vite:*)"
+      "Bash(npx vite:*)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173/mindmap)",
+      "Bash(kill %1)"
     ]
   }
 }

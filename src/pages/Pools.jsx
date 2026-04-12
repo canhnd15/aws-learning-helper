@@ -70,10 +70,15 @@ export default function Pools() {
     }
     const map = {}
     for (const note of allNotes) {
-      const key =
-        poolType === 'section' ? note.section_id :
-        poolType === 'topic' ? note.topic_id : note.test_id
-      if (key) map[key] = (map[key] || 0) + 1
+      if (poolType === 'topic') {
+        // A note can belong to multiple topics
+        for (const t of (note.topics || [])) {
+          map[t.id] = (map[t.id] || 0) + 1
+        }
+      } else {
+        const key = poolType === 'section' ? note.section_id : note.test_id
+        if (key) map[key] = (map[key] || 0) + 1
+      }
     }
     setCounts(map)
   }, [allNotes, poolType])

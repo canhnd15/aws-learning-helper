@@ -15,6 +15,9 @@ export default function Layout() {
             <NavLink to="/pools" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
               Knowledge Pools
             </NavLink>
+            <NavLink to="/mindmap" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
+              Mindmap
+            </NavLink>
             <NavLink to="/manage" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
               Manage
             </NavLink>

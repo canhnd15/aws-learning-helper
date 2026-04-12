@@ -151,45 +151,76 @@ export function useNotes({ sectionId, topicId, testId, search } = {}) {
 
   const fetch = useCallback(async () => {
     setLoading(true)
+
+    // When filtering by topic, use inner join so only matching notes return
+    const topicJoin = topicId ? 'note_topics!inner(topic:topics(id, name))' : 'note_topics(topic:topics(id, name))'
+
     let query = supabase
       .from('notes')
       .select(`
         *,
         test:tests(id, name),
         section:sections(id, name),
-        topic:topics(id, name)
+        ${topicJoin}
       `)
       .order('created_at', { ascending: false })
 
     if (sectionId) query = query.eq('section_id', sectionId)
-    if (topicId) query = query.eq('topic_id', topicId)
+    if (topicId) query = query.eq('note_topics.topic_id', topicId)
     if (testId) query = query.eq('test_id', testId)
     if (search) query = query.or(`title.ilike.%${search}%,content.ilike.%${search}%`)
 
     const { data } = await query
-    setNotes(data || [])
+
+    // Flatten note_topics into a topics array on each note
+    const normalized = (data || []).map((note) => ({
+      ...note,
+      topics: (note.note_topics || []).map((nt) => nt.topic).filter(Boolean),
+      note_topics: undefined,
+    }))
+
+    setNotes(normalized)
     setLoading(false)
   }, [sectionId, topicId, testId, search])
 
   useEffect(() => { fetch() }, [fetch])
 
-  const create = async (note) => {
+  const create = async ({ topic_ids, ...note }) => {
     const { data, error } = await supabase
       .from('notes')
       .insert(note)
       .select()
       .single()
     if (error) throw error
+
+    // Insert junction rows for topics
+    if (topic_ids && topic_ids.length > 0) {
+      const rows = topic_ids.map((tid) => ({ note_id: data.id, topic_id: tid }))
+      const { error: jtError } = await supabase.from('note_topics').insert(rows)
+      if (jtError) throw jtError
+    }
+
     await fetch()
     return data
   }
 
   const update = async (id, updates) => {
+    const { topic_ids, ...fields } = updates
     const { error } = await supabase
       .from('notes')
-      .update({ ...updates, updated_at: new Date().toISOString() })
+      .update({ ...fields, updated_at: new Date().toISOString() })
       .eq('id', id)
     if (error) throw error
+
+    // If topic_ids provided, replace junction rows
+    if (topic_ids !== undefined) {
+      await supabase.from('note_topics').delete().eq('note_id', id)
+      if (topic_ids.length > 0) {
+        const rows = topic_ids.map((tid) => ({ note_id: id, topic_id: tid }))
+        await supabase.from('note_topics').insert(rows)
+      }
+    }
+
     await fetch()
   }
 

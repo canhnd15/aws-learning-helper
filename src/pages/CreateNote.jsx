@@ -23,7 +23,7 @@ export default function CreateNote() {
 
   const [testId, setTestId] = useState(null);
   const [sectionId, setSectionId] = useState(null);
-  const [topicId, setTopicId] = useState(null);
+  const [topicIds, setTopicIds] = useState([]);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [imageFile, setImageFile] = useState(null);
@@ -53,7 +53,7 @@ export default function CreateNote() {
   const handleCreateTopic = async (name) => {
     try {
       const topic = await createTopic(name);
-      setTopicId(topic.id);
+      setTopicIds((prev) => [...prev, topic.id]);
       toast.success(`Topic "${name}" created`);
     } catch (err) {
       toast.error(err.message);
@@ -85,8 +85,8 @@ export default function CreateNote() {
       toast.error("Please select or create a section");
       return;
     }
-    if (!topicId) {
-      toast.error("Please select or create a topic");
+    if (topicIds.length === 0) {
+      toast.error("Please select or create at least one topic");
       return;
     }
 
@@ -100,7 +100,7 @@ export default function CreateNote() {
       await createNote({
         test_id: testId,
         section_id: sectionId,
-        topic_id: topicId,
+        topic_ids: topicIds,
         title: title.trim(),
         content,
         image_url,
@@ -110,7 +110,7 @@ export default function CreateNote() {
       setContent("");
       setTestId(null);
       setSectionId(null);
-      setTopicId(null);
+      setTopicIds([]);
       removeImage();
     } catch (err) {
       toast.error(err.message);
@@ -148,14 +148,15 @@ export default function CreateNote() {
           </div>
 
           <div className="form-group">
-            <label>Topic</label>
+            <label>Topics</label>
             <CreatableDropdown
               options={topics}
-              value={topicId}
-              onChange={setTopicId}
+              value={topicIds}
+              onChange={setTopicIds}
               onCreate={handleCreateTopic}
-              placeholder="Select a topic..."
+              placeholder="Select topics..."
               isLoading={topicsLoading}
+              isMulti
             />
           </div>
         </div>

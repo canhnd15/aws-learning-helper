@@ -158,7 +158,7 @@ function ManageNotes() {
                 <td className="manage-title-cell">{note.title || 'Untitled'}</td>
                 <td><span className="badge badge-blue">{note.test?.name || '—'}</span></td>
                 <td><span className="badge badge-green">{note.section?.name || '—'}</span></td>
-                <td><span className="badge badge-orange">{note.topic?.name || '—'}</span></td>
+                <td>{note.topics?.length > 0 ? note.topics.map((t) => <span key={t.id} className="badge badge-orange" style={{ marginRight: 4 }}>{t.name}</span>) : '—'}</td>
                 <td className="manage-date">{new Date(note.created_at).toLocaleDateString()}</td>
                 <td className="manage-actions">
                   <button className="btn-sm btn-delete" onClick={() => handleDelete(note.id, note.title)}>Delete</button>
