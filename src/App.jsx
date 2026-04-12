@@ -3,6 +3,7 @@ import { Toaster } from 'react-hot-toast'
 import Layout from './components/Layout'
 import CreateNote from './pages/CreateNote'
 import Pools from './pages/Pools'
+import Manage from './pages/Manage'
 
 export default function App() {
   return (
@@ -21,6 +22,7 @@ export default function App() {
         <Route path="/" element={<Layout />}>
           <Route index element={<CreateNote />} />
           <Route path="pools" element={<Pools />} />
+          <Route path="manage" element={<Manage />} />
         </Route>
       </Routes>
     </BrowserRouter>

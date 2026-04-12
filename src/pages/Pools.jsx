@@ -26,7 +26,7 @@ export default function Pools() {
     return { ...base, testId: selectedId }
   })()
 
-  const { notes, loading: notesLoading, remove } = useNotes(
+  const { notes, loading: notesLoading, remove, update } = useNotes(
     selectedId ? filterParams : { search: debouncedSearch }
   )
 
@@ -49,6 +49,15 @@ export default function Pools() {
       toast.error(err.message)
     }
   }, [remove])
+
+  const handleUpdate = useCallback(async (id, updates) => {
+    try {
+      await update(id, updates)
+      toast.success('Note updated')
+    } catch (err) {
+      toast.error(err.message)
+    }
+  }, [update])
 
   // Count notes per pool item
   const [counts, setCounts] = useState({})
@@ -157,7 +166,7 @@ export default function Pools() {
           ) : (
             <div className="notes-list">
               {notes.map((note) => (
-                <NoteCard key={note.id} note={note} onDelete={handleDelete} />
+                <NoteCard key={note.id} note={note} onDelete={handleDelete} onUpdate={handleUpdate} />
               ))}
             </div>
           )}

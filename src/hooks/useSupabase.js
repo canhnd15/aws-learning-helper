@@ -28,7 +28,25 @@ export function useSections() {
     return data
   }
 
-  return { sections, loading, refetch: fetch, create }
+  const update = async (id, name) => {
+    const { error } = await supabase
+      .from('sections')
+      .update({ name })
+      .eq('id', id)
+    if (error) throw error
+    await fetch()
+  }
+
+  const remove = async (id) => {
+    const { error } = await supabase
+      .from('sections')
+      .delete()
+      .eq('id', id)
+    if (error) throw error
+    await fetch()
+  }
+
+  return { sections, loading, refetch: fetch, create, update, remove }
 }
 
 export function useTopics() {
@@ -58,7 +76,25 @@ export function useTopics() {
     return data
   }
 
-  return { topics, loading, refetch: fetch, create }
+  const update = async (id, name) => {
+    const { error } = await supabase
+      .from('topics')
+      .update({ name })
+      .eq('id', id)
+    if (error) throw error
+    await fetch()
+  }
+
+  const remove = async (id) => {
+    const { error } = await supabase
+      .from('topics')
+      .delete()
+      .eq('id', id)
+    if (error) throw error
+    await fetch()
+  }
+
+  return { topics, loading, refetch: fetch, create, update, remove }
 }
 
 export function useTests() {
@@ -88,7 +124,25 @@ export function useTests() {
     return data
   }
 
-  return { tests, loading, refetch: fetch, create }
+  const update = async (id, name) => {
+    const { error } = await supabase
+      .from('tests')
+      .update({ name })
+      .eq('id', id)
+    if (error) throw error
+    await fetch()
+  }
+
+  const remove = async (id) => {
+    const { error } = await supabase
+      .from('tests')
+      .delete()
+      .eq('id', id)
+    if (error) throw error
+    await fetch()
+  }
+
+  return { tests, loading, refetch: fetch, create, update, remove }
 }
 
 export function useNotes({ sectionId, topicId, testId, search } = {}) {
