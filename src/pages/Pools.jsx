@@ -5,8 +5,36 @@ import {
   useTests,
   useNotes,
 } from "../hooks/useSupabase";
+import Select from "react-select";
 import NoteCard from "../components/NoteCard";
 import toast from "react-hot-toast";
+
+const selectStyles = {
+  control: (base, state) => ({
+    ...base,
+    background: "#1e293b",
+    borderColor: state.isFocused ? "#3b82f6" : "#334155",
+    boxShadow: state.isFocused ? "0 0 0 1px #3b82f6" : "none",
+    "&:hover": { borderColor: "#3b82f6" },
+    minHeight: "38px",
+    minWidth: "240px",
+  }),
+  menu: (base) => ({
+    ...base,
+    background: "#1e293b",
+    border: "1px solid #334155",
+    zIndex: 20,
+  }),
+  option: (base, state) => ({
+    ...base,
+    background: state.isFocused ? "#334155" : "transparent",
+    color: "#e2e8f0",
+    cursor: "pointer",
+  }),
+  singleValue: (base) => ({ ...base, color: "#e2e8f0" }),
+  input: (base) => ({ ...base, color: "#e2e8f0" }),
+  placeholder: (base) => ({ ...base, color: "#64748b" }),
+};
 
 export default function Pools() {
   const { sections, loading: sectionsLoading } = useSections();
@@ -14,12 +42,10 @@ export default function Pools() {
   const { tests, loading: testsLoading } = useTests();
 
   const [poolType, setPoolType] = useState("section");
-  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [selectedId, setSelectedId] = useState(null);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
-  // Debounce search input
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 300);
     return () => clearTimeout(timer);
@@ -47,12 +73,6 @@ export default function Pools() {
       : poolType === "topic"
         ? topicsLoading
         : testsLoading;
-  const sidebarTitle =
-    poolType === "section"
-      ? "Sections"
-      : poolType === "topic"
-        ? "Topics"
-        : "Tests";
 
   const handleDelete = useCallback(
     async (id) => {
@@ -79,35 +99,37 @@ export default function Pools() {
     [update],
   );
 
-  // Count notes per pool item
-  const [counts, setCounts] = useState({});
   const { notes: allNotes } = useNotes();
-
-  useEffect(() => {
-    if (!allNotes.length) {
-      setCounts({});
-      return;
-    }
-    const map = {};
-    for (const note of allNotes) {
-      if (poolType === "topic") {
-        // A note can belong to multiple topics
-        for (const t of note.topics || []) {
-          map[t.id] = (map[t.id] || 0) + 1;
-        }
-      } else {
-        const key = poolType === "section" ? note.section_id : note.test_id;
-        if (key) map[key] = (map[key] || 0) + 1;
-      }
-    }
-    setCounts(map);
-  }, [allNotes, poolType]);
 
   const switchPool = (type) => {
     setPoolType(type);
     setSelectedId(null);
     setSearch("");
   };
+
+  // Build dropdown options with note counts
+  const counts = {};
+  for (const note of allNotes) {
+    if (poolType === "topic") {
+      for (const t of note.topics || []) {
+        counts[t.id] = (counts[t.id] || 0) + 1;
+      }
+    } else {
+      const key = poolType === "section" ? note.section_id : note.test_id;
+      if (key) counts[key] = (counts[key] || 0) + 1;
+    }
+  }
+
+  const dropdownOptions = [
+    { value: null, label: `All (${allNotes.length})` },
+    ...items.map((item) => ({
+      value: item.id,
+      label: `${item.name} (${counts[item.id] || 0})`,
+    })),
+  ];
+
+  const selectedOption =
+    dropdownOptions.find((o) => o.value === selectedId) || dropdownOptions[0];
 
   return (
     <div className="page">
@@ -137,86 +159,50 @@ export default function Pools() {
             By Test
           </button>
         </div>
+
+        <Select
+          options={dropdownOptions}
+          value={selectedOption}
+          onChange={(opt) => setSelectedId(opt ? opt.value : null)}
+          isLoading={itemsLoading}
+          isSearchable
+          placeholder="Filter..."
+          styles={selectStyles}
+        />
+
+        <div className="pool-search-inline">
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search notes..."
+            className="input"
+          />
+        </div>
       </div>
 
-      <div
-        className={`pool-layout ${sidebarOpen ? "" : "pool-layout-collapsed"}`}
-      >
-        <aside
-          className={`pool-sidebar ${sidebarOpen ? "" : "pool-sidebar-collapsed"}`}
-        >
-          <div className="pool-sidebar-header">
-            <h3>{sidebarTitle}</h3>
-            <button
-              className="pool-sidebar-toggle"
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              title={sidebarOpen ? "Collapse filters" : "Expand filters"}
-            >
-              {sidebarOpen ? "\u00AB" : "\u00BB"}
-            </button>
+      <div className="pool-notes-area">
+        {notesLoading ? (
+          <div className="loading">Loading notes...</div>
+        ) : notes.length === 0 ? (
+          <div className="empty-state">
+            <p>No notes found.</p>
+            {selectedId && (
+              <p>Try selecting a different filter or clearing your search.</p>
+            )}
           </div>
-          {sidebarOpen &&
-            (itemsLoading ? (
-              <div className="loading">Loading...</div>
-            ) : (
-              <ul className="pool-list">
-                <li>
-                  <button
-                    className={`pool-item ${!selectedId ? "active" : ""}`}
-                    onClick={() => setSelectedId(null)}
-                  >
-                    All
-                    <span className="pool-count">{allNotes.length}</span>
-                  </button>
-                </li>
-                {items.map((item) => (
-                  <li key={item.id}>
-                    <button
-                      className={`pool-item ${selectedId === item.id ? "active" : ""}`}
-                      onClick={() => setSelectedId(item.id)}
-                    >
-                      {item.name}
-                      <span className="pool-count">{counts[item.id] || 0}</span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
+        ) : (
+          <div className="notes-list">
+            {notes.map((note) => (
+              <NoteCard
+                key={note.id}
+                note={note}
+                onDelete={handleDelete}
+                onUpdate={handleUpdate}
+              />
             ))}
-        </aside>
-
-        <main className="pool-main">
-          <div className="pool-search">
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search notes..."
-              className="input"
-            />
           </div>
-
-          {notesLoading ? (
-            <div className="loading">Loading notes...</div>
-          ) : notes.length === 0 ? (
-            <div className="empty-state">
-              <p>No notes found.</p>
-              {selectedId && (
-                <p>Try selecting a different pool or clearing your search.</p>
-              )}
-            </div>
-          ) : (
-            <div className="notes-list">
-              {notes.map((note) => (
-                <NoteCard
-                  key={note.id}
-                  note={note}
-                  onDelete={handleDelete}
-                  onUpdate={handleUpdate}
-                />
-              ))}
-            </div>
-          )}
-        </main>
+        )}
       </div>
     </div>
   );
