@@ -45,6 +45,8 @@ export default function Pools() {
   const [selectedId, setSelectedId] = useState(null);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 300);
@@ -105,6 +107,7 @@ export default function Pools() {
     setPoolType(type);
     setSelectedId(null);
     setSearch("");
+    setPage(1);
   };
 
   // Build dropdown options with note counts
@@ -163,7 +166,7 @@ export default function Pools() {
         <Select
           options={dropdownOptions}
           value={selectedOption}
-          onChange={(opt) => setSelectedId(opt ? opt.value : null)}
+          onChange={(opt) => { setSelectedId(opt ? opt.value : null); setPage(1); }}
           isLoading={itemsLoading}
           isSearchable
           placeholder="Filter..."
@@ -174,7 +177,7 @@ export default function Pools() {
           <input
             type="text"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             placeholder="Search notes..."
             className="input"
           />
@@ -192,16 +195,50 @@ export default function Pools() {
             )}
           </div>
         ) : (
-          <div className="notes-list">
-            {notes.map((note) => (
-              <NoteCard
-                key={note.id}
-                note={note}
-                onDelete={handleDelete}
-                onUpdate={handleUpdate}
-              />
-            ))}
-          </div>
+          <>
+            <div className="notes-list">
+              {notes.slice((page - 1) * pageSize, page * pageSize).map((note) => (
+                <NoteCard
+                  key={note.id}
+                  note={note}
+                  onDelete={handleDelete}
+                  onUpdate={handleUpdate}
+                />
+              ))}
+            </div>
+            {notes.length > pageSize && (
+              <div className="pagination">
+                <button
+                  className="pagination-btn"
+                  disabled={page <= 1}
+                  onClick={() => setPage(page - 1)}
+                >
+                  Previous
+                </button>
+                <div className="pagination-pages">
+                  {Array.from({ length: Math.ceil(notes.length / pageSize) }, (_, i) => i + 1).map((p) => (
+                    <button
+                      key={p}
+                      className={`pagination-page ${p === page ? "active" : ""}`}
+                      onClick={() => setPage(p)}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  className="pagination-btn"
+                  disabled={page >= Math.ceil(notes.length / pageSize)}
+                  onClick={() => setPage(page + 1)}
+                >
+                  Next
+                </button>
+                <span className="pagination-info">
+                  {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, notes.length)} of {notes.length}
+                </span>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
