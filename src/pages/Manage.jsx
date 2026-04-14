@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import toast from 'react-hot-toast'
-import { useSections, useTopics, useTests, useNotes } from '../hooks/useSupabase'
+import { useSections, useTopics, useTests, useNotes, useQuickNotes } from '../hooks/useSupabase'
 
 function ManageTable({ title, items, loading, onCreate, onUpdate, onDelete, columns }) {
   const [newName, setNewName] = useState('')
@@ -120,6 +120,54 @@ function ManageTable({ title, items, loading, onCreate, onUpdate, onDelete, colu
   )
 }
 
+function ManageQuickNotes() {
+  const { quickNotes, loading, remove } = useQuickNotes()
+
+  const handleDelete = async (id, title) => {
+    if (!window.confirm(`Delete quick note "${title}"?`)) return
+    try {
+      await remove(id)
+      toast.success('Quick note deleted')
+    } catch (err) {
+      toast.error(err.message)
+    }
+  }
+
+  return (
+    <div className="manage-section">
+      <h2 className="manage-section-title">Quick Notes</h2>
+      {loading ? (
+        <div className="loading">Loading...</div>
+      ) : quickNotes.length === 0 ? (
+        <div className="manage-empty">No quick notes yet.</div>
+      ) : (
+        <table className="manage-table">
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Topics</th>
+              <th>Created</th>
+              <th className="manage-actions-col">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {quickNotes.map((note) => (
+              <tr key={note.id}>
+                <td className="manage-title-cell">{note.title || 'Untitled'}</td>
+                <td>{note.topics?.length > 0 ? note.topics.map((t) => <span key={t.id} className="badge badge-orange" style={{ marginRight: 4 }}>{t.name}</span>) : '—'}</td>
+                <td className="manage-date">{new Date(note.created_at).toLocaleDateString()}</td>
+                <td className="manage-actions">
+                  <button className="btn-sm btn-delete" onClick={() => handleDelete(note.id, note.title)}>Delete</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  )
+}
+
 function ManageNotes() {
   const { notes, loading, remove } = useNotes()
 
@@ -191,6 +239,7 @@ export default function Manage() {
           <button className={`tab ${activeTab === 'sections' ? 'active' : ''}`} onClick={() => setActiveTab('sections')}>Sections</button>
           <button className={`tab ${activeTab === 'topics' ? 'active' : ''}`} onClick={() => setActiveTab('topics')}>Topics</button>
           <button className={`tab ${activeTab === 'notes' ? 'active' : ''}`} onClick={() => setActiveTab('notes')}>Notes</button>
+          <button className={`tab ${activeTab === 'quickNotes' ? 'active' : ''}`} onClick={() => setActiveTab('quickNotes')}>Quick Notes</button>
         </div>
       </div>
 
@@ -231,6 +280,8 @@ export default function Manage() {
       )}
 
       {activeTab === 'notes' && <ManageNotes />}
+
+      {activeTab === 'quickNotes' && <ManageQuickNotes />}
     </div>
   )
 }

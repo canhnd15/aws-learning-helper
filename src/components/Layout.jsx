@@ -12,6 +12,9 @@ export default function Layout() {
             <NavLink to="/" end className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
               Create Note
             </NavLink>
+            <NavLink to="/quick-notes" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
+              Quick Notes
+            </NavLink>
             <NavLink to="/pools" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
               Knowledge Pools
             </NavLink>

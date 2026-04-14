@@ -235,3 +235,85 @@ export function useNotes({ sectionId, topicId, testId, search } = {}) {
 
   return { notes, loading, refetch: fetch, create, update, remove }
 }
+
+export function useQuickNotes({ topicId, search } = {}) {
+  const [quickNotes, setQuickNotes] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  const fetch = useCallback(async () => {
+    setLoading(true)
+
+    const topicJoin = topicId
+      ? 'quick_note_topics!inner(topic:topics(id, name))'
+      : 'quick_note_topics(topic:topics(id, name))'
+
+    let query = supabase
+      .from('quick_notes')
+      .select(`*, ${topicJoin}`)
+      .order('created_at', { ascending: false })
+
+    if (topicId) query = query.eq('quick_note_topics.topic_id', topicId)
+    if (search) query = query.or(`title.ilike.%${search}%,content.ilike.%${search}%`)
+
+    const { data } = await query
+
+    const normalized = (data || []).map((note) => ({
+      ...note,
+      topics: (note.quick_note_topics || []).map((nt) => nt.topic).filter(Boolean),
+      quick_note_topics: undefined,
+    }))
+
+    setQuickNotes(normalized)
+    setLoading(false)
+  }, [topicId, search])
+
+  useEffect(() => { fetch() }, [fetch])
+
+  const create = async ({ topic_ids, ...note }) => {
+    const { data, error } = await supabase
+      .from('quick_notes')
+      .insert(note)
+      .select()
+      .single()
+    if (error) throw error
+
+    if (topic_ids && topic_ids.length > 0) {
+      const rows = topic_ids.map((tid) => ({ quick_note_id: data.id, topic_id: tid }))
+      const { error: jtError } = await supabase.from('quick_note_topics').insert(rows)
+      if (jtError) throw jtError
+    }
+
+    await fetch()
+    return data
+  }
+
+  const update = async (id, updates) => {
+    const { topic_ids, ...fields } = updates
+    const { error } = await supabase
+      .from('quick_notes')
+      .update({ ...fields, updated_at: new Date().toISOString() })
+      .eq('id', id)
+    if (error) throw error
+
+    if (topic_ids !== undefined) {
+      await supabase.from('quick_note_topics').delete().eq('quick_note_id', id)
+      if (topic_ids.length > 0) {
+        const rows = topic_ids.map((tid) => ({ quick_note_id: id, topic_id: tid }))
+        await supabase.from('quick_note_topics').insert(rows)
+      }
+    }
+
+    await fetch()
+  }
+
+  const remove = async (id) => {
+    const { error } = await supabase
+      .from('quick_notes')
+      .delete()
+      .eq('id', id)
+    if (error) throw error
+    await fetch()
+  }
+
+  return { quickNotes, loading, refetch: fetch, create, update, remove }
+}

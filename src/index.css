@@ -733,6 +733,11 @@ body {
   color: #fbbf24;
 }
 
+.badge-purple {
+  background: rgba(168, 85, 247, 0.15);
+  color: #c084fc;
+}
+
 .note-card-body {
   margin-top: 14px;
   padding-top: 14px;
@@ -930,6 +935,26 @@ body {
 
 .btn-secondary:hover {
   background: #475569;
+}
+
+/* ===== Quick Notes ===== */
+.quick-note-form {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+}
+
+.quick-notes-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 32px 0;
+}
+
+.quick-notes-browse h2 {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 16px;
 }
 
 /* ===== States ===== */
