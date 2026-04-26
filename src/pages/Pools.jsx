@@ -4,6 +4,8 @@ import {
   useTopics,
   useTests,
   useNotes,
+  useCourseSections,
+  useCourseNotes,
 } from "../hooks/useSupabase";
 import Select from "react-select";
 import NoteCard from "../components/NoteCard";
@@ -40,6 +42,8 @@ export default function Pools() {
   const { sections, loading: sectionsLoading } = useSections();
   const { topics, loading: topicsLoading } = useTopics();
   const { tests, loading: testsLoading } = useTests();
+  const { sections: courseSections, loading: courseSectionsLoading } =
+    useCourseSections();
 
   const [poolType, setPoolType] = useState("section");
   const [selectedId, setSelectedId] = useState(null);
@@ -57,24 +61,59 @@ export default function Pools() {
     const base = { search: debouncedSearch };
     if (poolType === "section") return { ...base, sectionId: selectedId };
     if (poolType === "topic") return { ...base, topicId: selectedId };
+    if (poolType === "course") return { ...base, sectionId: selectedId };
     return { ...base, testId: selectedId };
   })();
 
+  const isCourse = poolType === "course";
+
+  const examNotesParams = isCourse
+    ? { search: debouncedSearch }
+    : selectedId
+      ? filterParams
+      : { search: debouncedSearch };
+
+  const courseNotesParams = isCourse
+    ? selectedId
+      ? filterParams
+      : { search: debouncedSearch }
+    : { search: debouncedSearch };
+
   const {
-    notes,
-    loading: notesLoading,
-    remove,
-    update,
-  } = useNotes(selectedId ? filterParams : { search: debouncedSearch });
+    notes: examNotes,
+    loading: examNotesLoading,
+    remove: removeExam,
+    update: updateExam,
+  } = useNotes(examNotesParams);
+
+  const {
+    notes: courseNotes,
+    loading: courseNotesLoading,
+    remove: removeCourse,
+    update: updateCourse,
+  } = useCourseNotes(courseNotesParams);
+
+  const notes = isCourse ? courseNotes : examNotes;
+  const notesLoading = isCourse ? courseNotesLoading : examNotesLoading;
+  const remove = isCourse ? removeCourse : removeExam;
+  const update = isCourse ? updateCourse : updateExam;
 
   const items =
-    poolType === "section" ? sections : poolType === "topic" ? topics : tests;
+    poolType === "section"
+      ? sections
+      : poolType === "topic"
+        ? topics
+        : poolType === "course"
+          ? courseSections
+          : tests;
   const itemsLoading =
     poolType === "section"
       ? sectionsLoading
       : poolType === "topic"
         ? topicsLoading
-        : testsLoading;
+        : poolType === "course"
+          ? courseSectionsLoading
+          : testsLoading;
 
   const handleDelete = useCallback(
     async (id) => {
@@ -102,6 +141,7 @@ export default function Pools() {
   );
 
   const { notes: allNotes } = useNotes();
+  const { notes: allCourseNotes } = useCourseNotes();
 
   const switchPool = (type) => {
     setPoolType(type);
@@ -112,19 +152,23 @@ export default function Pools() {
 
   // Build dropdown options with note counts
   const counts = {};
-  for (const note of allNotes) {
+  const sourceNotes = isCourse ? allCourseNotes : allNotes;
+  for (const note of sourceNotes) {
     if (poolType === "topic") {
       for (const t of note.topics || []) {
         counts[t.id] = (counts[t.id] || 0) + 1;
       }
     } else {
-      const key = poolType === "section" ? note.section_id : note.test_id;
+      const key =
+        poolType === "section" || poolType === "course"
+          ? note.section_id
+          : note.test_id;
       if (key) counts[key] = (counts[key] || 0) + 1;
     }
   }
 
   const dropdownOptions = [
-    { value: null, label: `All (${allNotes.length})` },
+    { value: null, label: `All (${sourceNotes.length})` },
     ...items.map((item) => ({
       value: item.id,
       label: `${item.name} (${counts[item.id] || 0})`,
@@ -160,6 +204,12 @@ export default function Pools() {
             onClick={() => switchPool("test")}
           >
             By Test
+          </button>
+          <button
+            className={`tab ${poolType === "course" ? "active" : ""}`}
+            onClick={() => switchPool("course")}
+          >
+            By Course
           </button>
         </div>
 
