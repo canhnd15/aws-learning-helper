@@ -1,24 +1,51 @@
 import { useState } from 'react'
 import RichTextEditor from './RichTextEditor'
+import ImageUpload from './ImageUpload'
+import { uploadImage } from '../lib/supabase'
 
 export default function NoteCard({ note, onDelete, onUpdate }) {
   const [expanded, setExpanded] = useState(false)
   const [editing, setEditing] = useState(false)
   const [editContent, setEditContent] = useState('')
   const [editTitle, setEditTitle] = useState('')
+  const [editImages, setEditImages] = useState([])
   const [saving, setSaving] = useState(false)
 
   const startEdit = (e) => {
     e.stopPropagation()
     setEditTitle(note.title || '')
     setEditContent(note.content || '')
+    setEditImages(
+      (note.image_urls || []).map((url) => ({ url, isExisting: true })),
+    )
     setEditing(true)
     setExpanded(true)
   }
 
   const cancelEdit = (e) => {
     e.stopPropagation()
+    editImages.forEach((img) => {
+      if (!img.isExisting && img.preview) URL.revokeObjectURL(img.preview)
+    })
+    setEditImages([])
     setEditing(false)
+  }
+
+  const handleEditImageAdd = (file) => {
+    setEditImages((prev) => [
+      ...prev,
+      { file, preview: URL.createObjectURL(file), isExisting: false },
+    ])
+  }
+
+  const handleEditImageRemove = (index) => {
+    setEditImages((prev) => {
+      const target = prev[index]
+      if (target && !target.isExisting && target.preview) {
+        URL.revokeObjectURL(target.preview)
+      }
+      return prev.filter((_, i) => i !== index)
+    })
   }
 
   const saveEdit = async (e) => {
@@ -26,12 +53,23 @@ export default function NoteCard({ note, onDelete, onUpdate }) {
     if (!onUpdate) return
     setSaving(true)
     try {
-      await onUpdate(note.id, { title: editTitle, content: editContent })
+      const image_urls = await Promise.all(
+        editImages.map((img) =>
+          img.isExisting ? Promise.resolve(img.url) : uploadImage(img.file),
+        ),
+      )
+      await onUpdate(note.id, {
+        title: editTitle,
+        content: editContent,
+        image_urls,
+      })
       setEditing(false)
     } finally {
       setSaving(false)
     }
   }
+
+  const images = note.image_urls || []
 
   return (
     <div className={`note-card ${editing ? 'note-card-editing' : ''}`}>
@@ -91,9 +129,19 @@ export default function NoteCard({ note, onDelete, onUpdate }) {
             className="note-card-content"
             dangerouslySetInnerHTML={{ __html: note.content }}
           />
-          {note.image_url && (
-            <div className="note-card-image">
-              <img src={note.image_url} alt="Note attachment" />
+          {images.length > 0 && (
+            <div className="note-card-images">
+              {images.map((url, idx) => (
+                <a
+                  key={`${url}-${idx}`}
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="note-card-image"
+                >
+                  <img src={url} alt={`Note attachment ${idx + 1}`} />
+                </a>
+              ))}
             </div>
           )}
         </div>
@@ -105,6 +153,13 @@ export default function NoteCard({ note, onDelete, onUpdate }) {
             content={editContent}
             onChange={setEditContent}
           />
+          <div className="note-card-edit-images">
+            <ImageUpload
+              previews={editImages.map((img) => (img.isExisting ? img.url : img.preview))}
+              onAdd={handleEditImageAdd}
+              onRemove={handleEditImageRemove}
+            />
+          </div>
           <div className="note-card-edit-actions">
             <button className="btn btn-primary" onClick={saveEdit} disabled={saving}>
               {saving ? 'Saving...' : 'Save'}

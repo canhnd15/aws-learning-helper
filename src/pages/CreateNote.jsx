@@ -26,8 +26,7 @@ export default function CreateNote() {
   const [topicIds, setTopicIds] = useState([]);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [imageFile, setImageFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
+  const [images, setImages] = useState([]);
   const [submitting, setSubmitting] = useState(false);
 
   const handleCreateTest = async (name) => {
@@ -60,14 +59,23 @@ export default function CreateNote() {
     }
   };
 
-  const handleImageSelect = (file) => {
-    setImageFile(file);
-    setImagePreview(URL.createObjectURL(file));
+  const handleImageAdd = (file) => {
+    setImages((prev) => [...prev, { file, preview: URL.createObjectURL(file) }]);
   };
 
-  const removeImage = () => {
-    setImageFile(null);
-    setImagePreview(null);
+  const handleImageRemove = (index) => {
+    setImages((prev) => {
+      const target = prev[index];
+      if (target?.preview) URL.revokeObjectURL(target.preview);
+      return prev.filter((_, i) => i !== index);
+    });
+  };
+
+  const clearImages = () => {
+    setImages((prev) => {
+      prev.forEach((img) => img.preview && URL.revokeObjectURL(img.preview));
+      return [];
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -92,10 +100,9 @@ export default function CreateNote() {
 
     setSubmitting(true);
     try {
-      let image_url = null;
-      if (imageFile) {
-        image_url = await uploadImage(imageFile);
-      }
+      const image_urls = await Promise.all(
+        images.map((img) => uploadImage(img.file)),
+      );
 
       await createNote({
         test_id: testId,
@@ -103,7 +110,7 @@ export default function CreateNote() {
         topic_ids: topicIds,
         title: title.trim(),
         content,
-        image_url,
+        image_urls,
       });
       toast.success("Note saved!");
       setTitle("");
@@ -111,7 +118,7 @@ export default function CreateNote() {
       setTestId(null);
       setSectionId(null);
       setTopicIds([]);
-      removeImage();
+      clearImages();
     } catch (err) {
       toast.error(err.message);
     } finally {
@@ -182,11 +189,11 @@ export default function CreateNote() {
         </div>
 
         <div className="form-group">
-          <label>Image (optional)</label>
+          <label>Images (optional)</label>
           <ImageUpload
-            imagePreview={imagePreview}
-            onImageSelect={handleImageSelect}
-            onRemove={removeImage}
+            previews={images.map((img) => img.preview)}
+            onAdd={handleImageAdd}
+            onRemove={handleImageRemove}
           />
         </div>
 

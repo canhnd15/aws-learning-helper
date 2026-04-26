@@ -1,17 +1,21 @@
 import { useState, useRef, useEffect } from 'react'
 
-export default function ImageUpload({ imagePreview, onImageSelect, onRemove }) {
+export default function ImageUpload({ previews = [], onAdd, onRemove }) {
   const [dragging, setDragging] = useState(false)
   const fileInputRef = useRef(null)
-  const dropzoneRef = useRef(null)
 
-  const processFile = (file) => {
-    if (!file || !file.type.startsWith('image/')) return
-    onImageSelect(file)
+  const processFiles = (files) => {
+    if (!files || files.length === 0) return
+    for (const file of files) {
+      if (file && file.type.startsWith('image/')) {
+        onAdd(file)
+      }
+    }
   }
 
   const handleFileChange = (e) => {
-    processFile(e.target.files?.[0])
+    processFiles(e.target.files)
+    if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
   const handleDragOver = (e) => {
@@ -31,18 +35,17 @@ export default function ImageUpload({ imagePreview, onImageSelect, onRemove }) {
     e.stopPropagation()
     setDragging(false)
 
-    const file = e.dataTransfer.files?.[0]
-    if (file) {
-      processFile(file)
+    const files = e.dataTransfer.files
+    if (files && files.length > 0) {
+      processFiles(files)
       return
     }
 
-    // Handle image dragged from a webpage (as HTML with <img> src)
     const html = e.dataTransfer.getData('text/html')
     if (html) {
-      const match = html.match(/<img[^>]+src="([^"]+)"/)
-      if (match?.[1]) {
-        fetchImageAsFile(match[1])
+      const matches = [...html.matchAll(/<img[^>]+src="([^"]+)"/g)]
+      if (matches.length > 0) {
+        matches.forEach((m) => fetchImageAsFile(m[1]))
         return
       }
     }
@@ -57,22 +60,27 @@ export default function ImageUpload({ imagePreview, onImageSelect, onRemove }) {
     const items = e.clipboardData?.items
     if (!items) return
 
+    let consumed = false
     for (const item of items) {
       if (item.type.startsWith('image/')) {
-        e.preventDefault()
-        processFile(item.getAsFile())
-        return
+        const file = item.getAsFile()
+        if (file) {
+          onAdd(file)
+          consumed = true
+        }
       }
     }
+    if (consumed) {
+      e.preventDefault()
+      return
+    }
 
-    // Check for pasted HTML with image URL
     const html = e.clipboardData.getData('text/html')
     if (html) {
       const match = html.match(/<img[^>]+src="([^"]+)"/)
       if (match?.[1]) {
         e.preventDefault()
         fetchImageAsFile(match[1])
-        return
       }
     }
   }
@@ -84,58 +92,54 @@ export default function ImageUpload({ imagePreview, onImageSelect, onRemove }) {
       if (!blob.type.startsWith('image/')) return
       const ext = blob.type.split('/')[1] || 'png'
       const file = new File([blob], `pasted-image.${ext}`, { type: blob.type })
-      processFile(file)
+      onAdd(file)
     } catch {
-      // Fetch might fail due to CORS — silently ignore
+      // Fetch may fail due to CORS — silently ignore
     }
   }
 
-  // Listen for paste events on the document when dropzone is visible
   useEffect(() => {
-    if (imagePreview) return
     const handler = (e) => handlePaste(e)
     document.addEventListener('paste', handler)
     return () => document.removeEventListener('paste', handler)
   })
 
-  const handleRemove = () => {
-    if (fileInputRef.current) fileInputRef.current.value = ''
-    onRemove()
-  }
-
   return (
     <div className="image-upload">
-      {imagePreview ? (
-        <div className="image-preview">
-          <img src={imagePreview} alt="Preview" />
-          <button
-            type="button"
-            className="image-remove"
-            onClick={handleRemove}
-            title="Remove image"
-          >
-            &times;
-          </button>
+      {previews.length > 0 && (
+        <div className="image-gallery">
+          {previews.map((src, idx) => (
+            <div className="image-gallery-item" key={`${src}-${idx}`}>
+              <img src={src} alt={`Preview ${idx + 1}`} />
+              <button
+                type="button"
+                className="image-remove"
+                onClick={() => onRemove(idx)}
+                title="Remove image"
+              >
+                &times;
+              </button>
+            </div>
+          ))}
         </div>
-      ) : (
-        <label
-          ref={dropzoneRef}
-          className={`image-dropzone ${dragging ? 'image-dropzone-active' : ''}`}
-          htmlFor="image-input"
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-        >
-          <span className="image-dropzone-icon">+</span>
-          <span>Click, drag & drop, or paste an image</span>
-          <span className="image-dropzone-hint">PNG, JPG, GIF up to 5MB</span>
-        </label>
       )}
+      <label
+        className={`image-dropzone ${dragging ? 'image-dropzone-active' : ''}`}
+        htmlFor="image-input"
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
+        <span className="image-dropzone-icon">+</span>
+        <span>Click, drag & drop, or paste images</span>
+        <span className="image-dropzone-hint">PNG, JPG, GIF — multiple allowed</span>
+      </label>
       <input
         id="image-input"
         ref={fileInputRef}
         type="file"
         accept="image/*"
+        multiple
         onChange={handleFileChange}
         hidden
       />

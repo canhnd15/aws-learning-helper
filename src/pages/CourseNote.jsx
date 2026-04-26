@@ -17,8 +17,7 @@ export default function CourseNote() {
   const [sectionId, setSectionId] = useState(null);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [imageFile, setImageFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
+  const [images, setImages] = useState([]);
   const [submitting, setSubmitting] = useState(false);
 
   const handleCreateSection = async (name) => {
@@ -31,14 +30,23 @@ export default function CourseNote() {
     }
   };
 
-  const handleImageSelect = (file) => {
-    setImageFile(file);
-    setImagePreview(URL.createObjectURL(file));
+  const handleImageAdd = (file) => {
+    setImages((prev) => [...prev, { file, preview: URL.createObjectURL(file) }]);
   };
 
-  const removeImage = () => {
-    setImageFile(null);
-    setImagePreview(null);
+  const handleImageRemove = (index) => {
+    setImages((prev) => {
+      const target = prev[index];
+      if (target?.preview) URL.revokeObjectURL(target.preview);
+      return prev.filter((_, i) => i !== index);
+    });
+  };
+
+  const clearImages = () => {
+    setImages((prev) => {
+      prev.forEach((img) => img.preview && URL.revokeObjectURL(img.preview));
+      return [];
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -55,22 +63,21 @@ export default function CourseNote() {
 
     setSubmitting(true);
     try {
-      let image_url = null;
-      if (imageFile) {
-        image_url = await uploadImage(imageFile);
-      }
+      const image_urls = await Promise.all(
+        images.map((img) => uploadImage(img.file)),
+      );
 
       await createNote({
         section_id: sectionId,
         title: title.trim(),
         content,
-        image_url,
+        image_urls,
       });
       toast.success("Course note saved!");
       setTitle("");
       setContent("");
       setSectionId(null);
-      removeImage();
+      clearImages();
     } catch (err) {
       toast.error(err.message);
     } finally {
@@ -114,11 +121,11 @@ export default function CourseNote() {
         </div>
 
         <div className="form-group">
-          <label>Image (optional)</label>
+          <label>Images (optional)</label>
           <ImageUpload
-            imagePreview={imagePreview}
-            onImageSelect={handleImageSelect}
-            onRemove={removeImage}
+            previews={images.map((img) => img.preview)}
+            onAdd={handleImageAdd}
+            onRemove={handleImageRemove}
           />
         </div>
 
