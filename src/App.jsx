@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import Layout from './components/Layout'
 import CreateNote from './pages/CreateNote'
+import CourseNote from './pages/CourseNote'
 import Pools from './pages/Pools'
 import Manage from './pages/Manage'
 import Mindmap from './pages/Mindmap'
@@ -23,6 +24,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<CreateNote />} />
+          <Route path="course-note" element={<CourseNote />} />
           <Route path="pools" element={<Pools />} />
           <Route path="quick-notes" element={<QuickNotes />} />
           <Route path="manage" element={<Manage />} />

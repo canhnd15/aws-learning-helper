@@ -145,6 +145,107 @@ export function useTests() {
   return { tests, loading, refetch: fetch, create, update, remove }
 }
 
+export function useCourseSections() {
+  const [sections, setSections] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  const fetch = useCallback(async () => {
+    setLoading(true)
+    const { data } = await supabase
+      .from('course_sections')
+      .select('*')
+      .order('name')
+    setSections(data || [])
+    setLoading(false)
+  }, [])
+
+  useEffect(() => { fetch() }, [fetch])
+
+  const create = async (name) => {
+    const { data, error } = await supabase
+      .from('course_sections')
+      .insert({ name })
+      .select()
+      .single()
+    if (error) throw error
+    await fetch()
+    return data
+  }
+
+  const update = async (id, name) => {
+    const { error } = await supabase
+      .from('course_sections')
+      .update({ name })
+      .eq('id', id)
+    if (error) throw error
+    await fetch()
+  }
+
+  const remove = async (id) => {
+    const { error } = await supabase
+      .from('course_sections')
+      .delete()
+      .eq('id', id)
+    if (error) throw error
+    await fetch()
+  }
+
+  return { sections, loading, refetch: fetch, create, update, remove }
+}
+
+export function useCourseNotes({ sectionId, search } = {}) {
+  const [notes, setNotes] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  const fetch = useCallback(async () => {
+    setLoading(true)
+    let query = supabase
+      .from('course_notes')
+      .select(`*, section:course_sections(id, name)`)
+      .order('created_at', { ascending: false })
+
+    if (sectionId) query = query.eq('section_id', sectionId)
+    if (search) query = query.or(`title.ilike.%${search}%,content.ilike.%${search}%`)
+
+    const { data } = await query
+    setNotes(data || [])
+    setLoading(false)
+  }, [sectionId, search])
+
+  useEffect(() => { fetch() }, [fetch])
+
+  const create = async (note) => {
+    const { data, error } = await supabase
+      .from('course_notes')
+      .insert(note)
+      .select()
+      .single()
+    if (error) throw error
+    await fetch()
+    return data
+  }
+
+  const update = async (id, updates) => {
+    const { error } = await supabase
+      .from('course_notes')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', id)
+    if (error) throw error
+    await fetch()
+  }
+
+  const remove = async (id) => {
+    const { error } = await supabase
+      .from('course_notes')
+      .delete()
+      .eq('id', id)
+    if (error) throw error
+    await fetch()
+  }
+
+  return { notes, loading, refetch: fetch, create, update, remove }
+}
+
 export function useNotes({ sectionId, topicId, testId, search } = {}) {
   const [notes, setNotes] = useState([])
   const [loading, setLoading] = useState(true)
