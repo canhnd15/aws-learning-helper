@@ -7,6 +7,7 @@ import Pools from './pages/Pools'
 import Manage from './pages/Manage'
 import Mindmap from './pages/Mindmap'
 import QuickNotes from './pages/QuickNotes'
+import ReviewQuestions from './pages/ReviewQuestions'
 
 export default function App() {
   return (
@@ -27,6 +28,7 @@ export default function App() {
           <Route path="course-note" element={<CourseNote />} />
           <Route path="pools" element={<Pools />} />
           <Route path="quick-notes" element={<QuickNotes />} />
+          <Route path="review-questions" element={<ReviewQuestions />} />
           <Route path="manage" element={<Manage />} />
           <Route path="mindmap" element={<Mindmap />} />
         </Route>

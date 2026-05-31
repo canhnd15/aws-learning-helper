@@ -418,3 +418,57 @@ export function useQuickNotes({ topicId, search } = {}) {
 
   return { quickNotes, loading, refetch: fetch, create, update, remove }
 }
+
+export function useReviewQuestions({ testNumber, search } = {}) {
+  const [questions, setQuestions] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  const fetch = useCallback(async () => {
+    setLoading(true)
+
+    let query = supabase
+      .from('review_questions')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (testNumber) query = query.eq('test_number', testNumber)
+    if (search) query = query.or(`question.ilike.%${search}%,knowledge.ilike.%${search}%,correct_answer.ilike.%${search}%`)
+
+    const { data } = await query
+    setQuestions(data || [])
+    setLoading(false)
+  }, [testNumber, search])
+
+  useEffect(() => { fetch() }, [fetch])
+
+  const create = async (question) => {
+    const { data, error } = await supabase
+      .from('review_questions')
+      .insert(question)
+      .select()
+      .single()
+    if (error) throw error
+    await fetch()
+    return data
+  }
+
+  const update = async (id, updates) => {
+    const { error } = await supabase
+      .from('review_questions')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', id)
+    if (error) throw error
+    await fetch()
+  }
+
+  const remove = async (id) => {
+    const { error } = await supabase
+      .from('review_questions')
+      .delete()
+      .eq('id', id)
+    if (error) throw error
+    await fetch()
+  }
+
+  return { questions, loading, refetch: fetch, create, update, remove }
+}
