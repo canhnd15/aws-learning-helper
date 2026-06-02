@@ -1148,14 +1148,14 @@ textarea.input {
 
 .correct-answer-checks {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
 .correct-check {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   cursor: pointer;
   padding: 6px 10px;
   border: 1px solid var(--border);
@@ -1168,11 +1168,6 @@ textarea.input {
   height: 16px;
   cursor: pointer;
   flex-shrink: 0;
-}
-
-.correct-check-text {
-  color: var(--text);
-  font-size: 14px;
 }
 
 .review-hint {

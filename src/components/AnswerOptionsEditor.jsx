@@ -80,7 +80,6 @@ export default function AnswerOptionsEditor({ options, correctAnswers, onChange 
                     onChange={() => toggleCorrect(letterFor(i))}
                   />
                   <span className="answer-letter">{letterFor(i)}</span>
-                  <span className="correct-check-text">{opt}</span>
                 </label>
               ) : null,
             )}
