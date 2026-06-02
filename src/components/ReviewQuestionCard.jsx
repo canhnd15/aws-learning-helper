@@ -1,6 +1,15 @@
 import { useState } from 'react'
 import RichTextEditor from './RichTextEditor'
+import AnswerOptionsEditor from './AnswerOptionsEditor'
 import { WRONG_REASONS } from '../lib/reviewReasons'
+import {
+  letterFor,
+  parseOptions,
+  parseCorrect,
+  normalizeAnswers,
+  serializeOptions,
+  serializeCorrect,
+} from '../lib/reviewOptions'
 
 export default function ReviewQuestionCard({ question, onDelete, onUpdate }) {
   const [expanded, setExpanded] = useState(false)
@@ -10,12 +19,13 @@ export default function ReviewQuestionCard({ question, onDelete, onUpdate }) {
 
   const startEdit = (e) => {
     e.stopPropagation()
+    const opts = parseOptions(question.options)
     setDraft({
       test_number: question.test_number || 1,
       question: question.question || '',
       why_chose: question.why_chose || '',
-      options: question.options || '',
-      correct_answer: question.correct_answer || '',
+      options: opts.length ? opts : [''],
+      correct_answers: parseCorrect(question.correct_answer),
       wrong_reasons: question.wrong_reasons || [],
       knowledge: question.knowledge || '',
     })
@@ -34,7 +44,19 @@ export default function ReviewQuestionCard({ question, onDelete, onUpdate }) {
     if (!onUpdate) return
     setSaving(true)
     try {
-      await onUpdate(question.id, draft)
+      const { options, correctAnswers } = normalizeAnswers(
+        draft.options,
+        draft.correct_answers,
+      )
+      await onUpdate(question.id, {
+        test_number: draft.test_number,
+        question: draft.question,
+        why_chose: draft.why_chose,
+        options: serializeOptions(options),
+        correct_answer: serializeCorrect(correctAnswers),
+        wrong_reasons: draft.wrong_reasons,
+        knowledge: draft.knowledge,
+      })
       setEditing(false)
       setDraft(null)
     } finally {
@@ -56,6 +78,9 @@ export default function ReviewQuestionCard({ question, onDelete, onUpdate }) {
     .replace(/<[^>]+>/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
+
+  const optionList = parseOptions(question.options)
+  const correctLetters = parseCorrect(question.correct_answer)
 
   return (
     <div className={`note-card ${editing ? 'note-card-editing' : ''}`}>
@@ -99,10 +124,22 @@ export default function ReviewQuestionCard({ question, onDelete, onUpdate }) {
               <div className="note-card-content" dangerouslySetInnerHTML={{ __html: question.question }} />
             </div>
           )}
-          {question.options && (
+          {optionList.length > 0 && (
             <div className="review-field">
               <span className="review-label">Các đáp án</span>
-              <pre className="review-options">{question.options}</pre>
+              <ul className="review-answer-list">
+                {optionList.map((opt, i) => {
+                  const letter = letterFor(i)
+                  const correct = correctLetters.includes(letter)
+                  return (
+                    <li key={i} className={`review-answer ${correct ? 'correct' : ''}`}>
+                      <span className="answer-letter">{letter}</span>
+                      <span>{opt}</span>
+                      {correct && <span className="badge badge-green">✓</span>}
+                    </li>
+                  )
+                })}
+              </ul>
             </div>
           )}
           {question.why_chose && (
@@ -111,10 +148,14 @@ export default function ReviewQuestionCard({ question, onDelete, onUpdate }) {
               <p className="review-text">{question.why_chose}</p>
             </div>
           )}
-          {question.correct_answer && (
+          {correctLetters.length > 0 && (
             <div className="review-field">
               <span className="review-label">Đáp án đúng</span>
-              <p className="review-text review-correct">{question.correct_answer}</p>
+              <div className="note-card-meta">
+                {correctLetters.map((l) => (
+                  <span key={l} className="badge badge-green">{l}</span>
+                ))}
+              </div>
             </div>
           )}
           {question.wrong_reasons?.length > 0 && (
@@ -157,15 +198,13 @@ export default function ReviewQuestionCard({ question, onDelete, onUpdate }) {
               onChange={(v) => setDraft({ ...draft, question: v })}
             />
           </div>
-          <div className="form-group">
-            <label>Các đáp án (A. B. C. ...)</label>
-            <textarea
-              className="input"
-              rows={4}
-              value={draft.options}
-              onChange={(e) => setDraft({ ...draft, options: e.target.value })}
-            />
-          </div>
+          <AnswerOptionsEditor
+            options={draft.options}
+            correctAnswers={draft.correct_answers}
+            onChange={({ options, correctAnswers }) =>
+              setDraft((d) => ({ ...d, options, correct_answers: correctAnswers }))
+            }
+          />
           <div className="form-group">
             <label>Tại sao tôi chọn đáp án này?</label>
             <textarea
@@ -173,15 +212,6 @@ export default function ReviewQuestionCard({ question, onDelete, onUpdate }) {
               rows={3}
               value={draft.why_chose}
               onChange={(e) => setDraft({ ...draft, why_chose: e.target.value })}
-            />
-          </div>
-          <div className="form-group">
-            <label>Đáp án đúng</label>
-            <input
-              type="text"
-              className="input"
-              value={draft.correct_answer}
-              onChange={(e) => setDraft({ ...draft, correct_answer: e.target.value })}
             />
           </div>
           <div className="form-group">

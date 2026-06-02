@@ -3,7 +3,9 @@ import toast from "react-hot-toast";
 import RichTextEditor from "../components/RichTextEditor";
 import { useReviewQuestions } from "../hooks/useSupabase";
 import ReviewQuestionCard from "../components/ReviewQuestionCard";
+import AnswerOptionsEditor from "../components/AnswerOptionsEditor";
 import { WRONG_REASONS } from "../lib/reviewReasons";
+import { normalizeAnswers, serializeOptions, serializeCorrect } from "../lib/reviewOptions";
 import Select from "react-select";
 
 const selectStyles = {
@@ -35,18 +37,18 @@ const selectStyles = {
 
 const TEST_NUMBERS = [1, 2, 3, 4, 5, 6];
 
-const emptyForm = {
+const makeEmptyForm = () => ({
   test_number: 1,
   question: "",
   why_chose: "",
-  options: "",
-  correct_answer: "",
+  options: [""],
+  correct_answers: [],
   wrong_reasons: [],
   knowledge: "",
-};
+});
 
 export default function ReviewQuestions() {
-  const [form, setForm] = useState(emptyForm);
+  const [form, setForm] = useState(makeEmptyForm);
   const [submitting, setSubmitting] = useState(false);
 
   // Filter state
@@ -92,17 +94,21 @@ export default function ReviewQuestions() {
 
     setSubmitting(true);
     try {
+      const { options, correctAnswers } = normalizeAnswers(
+        form.options,
+        form.correct_answers,
+      );
       await createQuestion({
         test_number: form.test_number,
         question: form.question,
         why_chose: form.why_chose.trim(),
-        options: form.options.trim(),
-        correct_answer: form.correct_answer.trim(),
+        options: serializeOptions(options),
+        correct_answer: serializeCorrect(correctAnswers),
         wrong_reasons: form.wrong_reasons,
         knowledge: form.knowledge,
       });
       toast.success("Review question saved!");
-      setForm({ ...emptyForm, test_number: form.test_number });
+      setForm({ ...makeEmptyForm(), test_number: form.test_number });
     } catch (err) {
       toast.error(err.message);
     } finally {
@@ -185,16 +191,13 @@ export default function ReviewQuestions() {
           />
         </div>
 
-        <div className="form-group">
-          <label>Các đáp án (A. B. C. ...)</label>
-          <textarea
-            className="input"
-            rows={4}
-            value={form.options}
-            onChange={(e) => setField("options", e.target.value)}
-            placeholder={"A. ...\nB. ...\nC. ...\nD. ..."}
-          />
-        </div>
+        <AnswerOptionsEditor
+          options={form.options}
+          correctAnswers={form.correct_answers}
+          onChange={({ options, correctAnswers }) =>
+            setForm((f) => ({ ...f, options, correct_answers: correctAnswers }))
+          }
+        />
 
         <div className="form-group">
           <label>Tại sao tôi chọn đáp án này?</label>
@@ -204,18 +207,6 @@ export default function ReviewQuestions() {
             value={form.why_chose}
             onChange={(e) => setField("why_chose", e.target.value)}
             placeholder="Lý do bạn đã chọn đáp án của mình..."
-          />
-        </div>
-
-        <div className="form-group">
-          <label>Đáp án đúng</label>
-          <input
-            type="text"
-            className="input"
-            value={form.correct_answer}
-            onChange={(e) => setField("correct_answer", e.target.value)}
-            placeholder="e.g., D"
-            style={{ maxWidth: 160 }}
           />
         </div>
 
