@@ -134,7 +134,7 @@ export default function ReviewQuestionCard({ question, onDelete, onUpdate }) {
                   return (
                     <li key={i} className={`review-answer ${correct ? 'correct' : ''}`}>
                       <span className="answer-letter">{letter}</span>
-                      <span>{opt}</span>
+                      <span className="review-answer-text">{opt}</span>
                       {correct && <span className="badge badge-green">✓</span>}
                     </li>
                   )

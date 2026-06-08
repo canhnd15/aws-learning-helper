@@ -1,4 +1,5 @@
 import { letterFor } from '../lib/reviewOptions'
+import AutoTextarea from './AutoTextarea'
 
 // Renders the "Các đáp án" dynamic input list + the "Đáp án đúng" checkboxes.
 // `options` is an array of answer texts; `correctAnswers` is an array of letters.
@@ -57,9 +58,8 @@ export default function AnswerOptionsEditor({ options, correctAnswers, onChange 
           {options.map((opt, i) => (
             <div className="answer-option-row" key={i}>
               <span className="answer-letter">{letterFor(i)}</span>
-              <input
-                type="text"
-                className="input"
+              <AutoTextarea
+                className="input answer-textarea"
                 value={opt}
                 onChange={(e) => setOption(i, e.target.value)}
                 placeholder={`Đáp án ${letterFor(i)}`}

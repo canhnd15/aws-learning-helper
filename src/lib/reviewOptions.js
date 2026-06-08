@@ -1,16 +1,27 @@
 // Helpers for working with review-question answer options.
-// Storage: `options` is newline-joined answer texts (letters A,B,C.. derived by
-// index); `correct_answer` is comma-joined letters, e.g. "A, C".
+// Storage: `options` is a JSON array of answer texts (letters A,B,C.. derived
+// by index); each answer may contain its own line breaks. `correct_answer` is
+// comma-joined letters, e.g. "A, C".
 
 export const letterFor = (i) => String.fromCharCode(65 + i)
 
-export const parseOptions = (text) =>
-  text ? text.split('\n').map((s) => s.trim()).filter(Boolean) : []
+export const parseOptions = (text) => {
+  if (!text) return []
+  try {
+    const parsed = JSON.parse(text)
+    if (Array.isArray(parsed)) {
+      return parsed.map((s) => String(s).trim()).filter(Boolean)
+    }
+  } catch {
+    // Legacy format: newline-joined answer texts.
+  }
+  return text.split('\n').map((s) => s.trim()).filter(Boolean)
+}
 
 export const parseCorrect = (text) =>
   text ? text.split(',').map((s) => s.trim()).filter(Boolean) : []
 
-export const serializeOptions = (arr) => arr.join('\n')
+export const serializeOptions = (arr) => JSON.stringify(arr)
 
 export const serializeCorrect = (arr) => arr.join(', ')
 

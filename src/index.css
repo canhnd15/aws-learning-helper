@@ -1117,12 +1117,17 @@ textarea.input {
 
 .answer-option-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
 }
 
 .answer-option-row .input {
   flex: 1;
+}
+
+.answer-textarea {
+  overflow: hidden;
+  resize: none;
 }
 
 .answer-letter {
@@ -1191,9 +1196,13 @@ textarea.input {
 
 .review-answer {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
   color: var(--text);
+}
+
+.review-answer-text {
+  white-space: pre-wrap;
 }
 
 .review-answer.correct {
