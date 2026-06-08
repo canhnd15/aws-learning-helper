@@ -1139,9 +1139,13 @@ textarea.input {
   flex-shrink: 0;
 }
 
-.btn-add-option {
-  align-self: flex-start;
+.answer-options-actions {
+  display: flex;
+  gap: 8px;
   margin-top: 10px;
+}
+
+.btn-add-option {
   padding: 6px 14px;
   font-size: 13px;
 }

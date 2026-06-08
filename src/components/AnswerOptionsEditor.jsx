@@ -30,7 +30,24 @@ export default function AnswerOptionsEditor({ options, correctAnswers, onChange 
     onChange({ options, correctAnswers: next })
   }
 
+  // Randomly reorder answers, keeping the correct selections on the same texts.
+  const shuffleOptions = () => {
+    const correctIdx = new Set(correctAnswers.map((l) => l.charCodeAt(0) - 65))
+    const items = options.map((opt, i) => ({ opt, correct: correctIdx.has(i) }))
+    for (let i = items.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[items[i], items[j]] = [items[j], items[i]]
+    }
+    const nextOptions = items.map((it) => it.opt)
+    const nextCorrect = items
+      .map((it, idx) => (it.correct ? letterFor(idx) : null))
+      .filter(Boolean)
+      .sort()
+    onChange({ options: nextOptions, correctAnswers: nextCorrect })
+  }
+
   const hasAnswers = options.some((o) => o.trim())
+  const canShuffle = options.filter((o) => o.trim()).length > 1
 
   return (
     <>
@@ -60,9 +77,20 @@ export default function AnswerOptionsEditor({ options, correctAnswers, onChange 
             </div>
           ))}
         </div>
-        <button type="button" className="btn btn-secondary btn-add-option" onClick={addOption}>
-          + Add answer
-        </button>
+        <div className="answer-options-actions">
+          <button type="button" className="btn btn-secondary btn-add-option" onClick={addOption}>
+            + Add answer
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary btn-add-option"
+            onClick={shuffleOptions}
+            disabled={!canShuffle}
+            title="Randomly reorder answers"
+          >
+            🔀 Shuffle
+          </button>
+        </div>
       </div>
 
       <div className="form-group">
